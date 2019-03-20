@@ -14,9 +14,10 @@
 const int SUCCESS = 0;
 const int FAILURE = 1;
 
+
 struct trie
 {
-	int num,qsize,ql,sl,kl;
+	int num,qsize,ql,sl;
 	trie* node[129];
 	int* qgram;
 	trie()
@@ -24,19 +25,19 @@ struct trie
 		qsize = 0;
 		ql = -1;
 		sl = -1;
-		kl = -1;
 		num = -1;
 		for(int i = 0; i <= 128; i++)node[i] = NULL;
 		qgram = NULL;
 	}
 };
 
+typedef std::pair<int,trie*> pii;
+
 class SimSearcher
 {
 public:
 	int datasz,qgramsz,maxlength;
 	std::string datastrings[80011];
-	int qsize[80011];
 	unsigned qlimit;
 	int f[311][311];
 	trie* qroot;
@@ -45,9 +46,14 @@ public:
 	
 	int forcal[200011];
 	int occurtime[200011];
-	int querytime,filtsz,qthresh;
-	int filtans[200011];
+	int querytime,qthresh;
 
+	pii qlists[80011];
+	int shortlist[80011];
+	int filtsz,shortsz,qsize;//the qgram size of the query string
+	int filtans[80011];
+
+	bool check(trie*, int);
 	void BuildQgram();
 	int CalCulateED(std::string, std::string);
 	void insert(trie*, std::string, int);

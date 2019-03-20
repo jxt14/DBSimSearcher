@@ -29,7 +29,6 @@ void SimSearcher::insert(trie* rt, string s,int id)
 		rt->qsize = 0;
 	}
 	if (rt->ql != id){
-		qsize[id]++;
 		rt->qgram[++rt->qsize] = id;
 		rt->ql = id;
 		//	cout << "insert at " << rt->num << " " << rt->qsize << endl;
@@ -45,19 +44,8 @@ void SimSearcher::search(trie* rt, string s)
 	}
 	int tid;
 	if (rt->sl == querytime) return;
-	for (int i = 1; i <= rt->qsize ; i++){
-		tid = rt->qgram[i];
-		if (forcal[tid] != querytime){
-			forcal[tid] = querytime;
-			occurtime[tid] = 0;
-		}
-		occurtime[tid]++;
-		if (occurtime[tid] >= qsize[tid] + qthresh){
-			filtsz++;
-			filtans[filtsz] = tid;
-			occurtime[tid] = -20000000;
-		}
-	}
+	qsize++;
+	qlists[qsize] = make_pair(rt->qsize, rt);
 	rt->sl = querytime;
 }
 
@@ -98,7 +86,6 @@ void SimSearcher::BuildQgram()
 	qroot -> num = 0;
 	for (int i = 0; i < datasz; i++){
 		st = datastrings[i];
-		qsize[i] = 0;
 	//	cout << st << endl;
 		for (int j = 1; j <= st.length() - qlimit + 1; j++){
 			sb = st.substr(j-1, qlimit);
@@ -146,6 +133,19 @@ int SimSearcher::createIndex(const char *filename, unsigned q)
 	return 0;
 }
 
+bool SimSearcher::check(trie* rt, int bz)
+{
+	int l,r,mid;
+	l = 1;
+	r = rt->qsize;
+	while (l <= r) {
+		mid = (l+r) / 2;
+		if (rt->qgram[mid] < bz) l = mid + 1;
+		else r = mid - 1;
+	}
+	if (l <= rt->qsize && rt->qgram[l] == bz )return true;
+	return false;
+}
 
 int SimSearcher::searchJaccard(const char *query, double threshold, vector<pair<unsigned, double> > &result)
 {
@@ -157,31 +157,67 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 {
 	result.clear();
 	string tq,tb;
-	int len;
-
-	filtsz = 0;
+	int len,qthresh,listdec;
 
 	querytime++;
 	tq = query;
 	len = tq.length();
-	qthresh = - qlimit + 1 - threshold * qlimit;
-	
+
+	qsize = 0;
+	shortsz = 0;
+
 	for (int i = 1; i <= len - qlimit + 1; i++) {
 		tb = tq.substr(i-1, qlimit);
 		search(qroot, tb);
 	}
 	
-	sort(filtans+1, filtans+1+filtsz);
-
-	int k;
-	for (int i = 1; i <= filtsz; i++){
-	//	cout << filtans[i] << endl;
-		k = CalCulateED(datastrings[filtans[i]], tq);
-		if (k <= threshold) {
-			result.push_back(make_pair(filtans[i], k));
+	qthresh = qsize - qlimit + 1 - threshold * qlimit;
+	if (qthresh - 1 < 0) listdec = 0;
+	else listdec = qthresh - 1;
+	listdec = qsize - listdec;
+	if (listdec < 0) return SUCCESS;
+	sort(qlists + 1, qlists + 1 + qsize);
+	
+	for (int i = 1; i <= listdec; i++){
+		for (int j = 1; j <= qlists[i].second->qsize; j++){
+			shortsz++;
+			shortlist[shortsz] = qlists[i].second->qgram[j];
 		}
 	}
 
+	sort(shortlist + 1, shortlist + 1 + shortsz);
+	int bz,next,soc;
+
+	filtsz = 0;
+
+	bz = 1;
+	while (bz <= shortsz){
+		next = bz;
+		while (shortlist[next] == shortlist[bz] && next <= shortsz)next++;
+		soc = next - bz;
+		if (soc >= qthresh) {
+			filtsz++;
+			filtans[filtsz] = shortlist[bz];
+		}
+		else{
+			for (int j = listdec + 1; j <= qsize; j++) {
+				if (check(qlists[j].second, shortlist[bz]) == true) soc++;
+				if (soc >= qthresh) break;
+			}
+			if (soc >= qthresh) {
+				filtsz++;
+				filtans[filtsz] = shortlist[bz];
+			}
+		}
+		bz = next;
+	}
+
+	sort(filtans + 1, filtans + 1 + filtsz);
+	int k;
+	for (int i = 1; i <= filtsz; i++){
+		k = CalCulateED(datastrings[filtans[i]], tq);
+		if (k <= threshold) result.push_back(make_pair(filtans[i], k));
+	}
 /*
 	int k;
 	for (int i = 0; i < datasz; i++){
