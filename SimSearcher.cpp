@@ -122,7 +122,6 @@ int SimSearcher::createIndex(const char *filename, unsigned q)
 	}
 	fp.close();
 
-	for (int i = 0; i < datasz; i++)forcal[i] = -1;
 /*
 	for (int i = 1; i <= datasz; i++){
 		cout << datastrings[i] << endl;
@@ -203,6 +202,7 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 			for (int j = listdec + 1; j <= qsize; j++) {
 				if (check(qlists[j].second, shortlist[bz]) == true) soc++;
 				if (soc >= qthresh) break;
+				if (soc + qsize - j + 1 < qthresh) break;
 			}
 			if (soc >= qthresh) {
 				filtsz++;
