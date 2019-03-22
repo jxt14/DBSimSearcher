@@ -101,7 +101,6 @@ int SimSearcher::createIndex(const char *filename, unsigned q)
 {
 	char c;
 	bool p;
-	string temp;
 	if (q == 0) qlimit = 1;
 	else qlimit = q;
 	datasz = 0;
@@ -114,8 +113,10 @@ int SimSearcher::createIndex(const char *filename, unsigned q)
 
 	fp.open(filename);
 	
-	while (getline(fp, temp)) {
-		len = temp.length();
+	char* temp;
+	temp = new char[301];
+	while (fp.getline(temp, 300)) {
+		len = strlen(temp);
 		datastrings[datasz] = new char[len + 1];
 		for (int i = 0; i < len; i++)datastrings[datasz][i] = temp[i];
 		datastrings[datasz][len] = 0;
