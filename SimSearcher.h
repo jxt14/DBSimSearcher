@@ -36,16 +36,14 @@ typedef std::pair<int,trie*> pii;
 class SimSearcher
 {
 public:
-	int datasz,qgramsz,maxlength;
-	std::string datastrings[80011];
+	int datasz,qgramsz;
+	char* datastrings[80011];
 	unsigned qlimit;
 	int f[311][311];
 	trie* qroot;
 	SimSearcher();
 	~SimSearcher();
 	
-	int forcal[200011];
-	int occurtime[200011];
 	int querytime,qthresh;
 
 	pii qlists[80011];
@@ -55,9 +53,9 @@ public:
 
 	bool check(trie*, int);
 	void BuildQgram();
-	int CalCulateED(std::string, std::string);
-	void insert(trie*, std::string, int);
-	void search(trie*, std::string);
+	int CalCulateED(char*, char*);
+	void insert(trie*, char*, int);
+	void search(trie*, char*);
 	int createIndex(const char *filename, unsigned q);
 	int searchJaccard(const char *query, double threshold, std::vector<std::pair<unsigned, double> > &result);
 	int searchED(const char *query, unsigned threshold, std::vector<std::pair<unsigned, unsigned> > &result);

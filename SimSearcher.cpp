@@ -10,13 +10,12 @@ SimSearcher::~SimSearcher()
 {
 }
 
-void SimSearcher::insert(trie* rt, string s,int id)
+void SimSearcher::insert(trie* rt, char* s,int id)
 {
-	int l = s.length();
 //	cout << "insert " << s << " for string " << id << endl;
 
 //	cout << s << endl;
-	for (int i = 0; i < l; i++){
+	for (int i = 0; i < qlimit; i++){
 		if (rt -> node[(int)s[i]] == NULL){
 			rt->node[(int)s[i]] = new trie();
 			rt->node[(int)s[i]]->num = ++qgramsz;
@@ -35,10 +34,9 @@ void SimSearcher::insert(trie* rt, string s,int id)
 	}
 }
 
-void SimSearcher::search(trie* rt, string s)
+void SimSearcher::search(trie* rt, char* s)
 {
-	int l = s.length();
-	for (int i = 0; i < l; i++){
+	for (int i = 0; i < qlimit; i++){
 		if (rt->node[(int)s[i]] == NULL) return;
 		rt = rt -> node[(int)s[i]];
 	}
@@ -49,11 +47,11 @@ void SimSearcher::search(trie* rt, string s)
 	rt->sl = querytime;
 }
 
-int SimSearcher::CalCulateED(string s1, string s2)
+int SimSearcher::CalCulateED(char* s1, char* s2)
 {
 	int l1,l2;
-	l1 = s1.length();
-	l2 = s2.length();
+	l1 = strlen(s1);
+	l2 = strlen(s2);
 	for (int i = 0; i <= l1; i++)
 		for (int j = 0; j <= l2; j++)f[i][j] = -1;
 	for (int i = 0; i <= max(l1,l2); i++){
@@ -80,20 +78,23 @@ int SimSearcher::CalCulateED(string s1, string s2)
 
 void SimSearcher::BuildQgram()
 {
-	string st,sb;
+	char* tempt;
+	int len;
 	qgramsz = 0;
 	qroot = new trie();
 	qroot -> num = 0;
 	for (int i = 0; i < datasz; i++){
-		st = datastrings[i];
+		tempt = datastrings[i];
+		len = strlen(datastrings[i]);
+		//cout << len << endl;
 	//	cout << st << endl;
-		for (int j = 1; j <= st.length() - qlimit + 1; j++){
-			sb = st.substr(j-1, qlimit);
+		for (int j = 1; j <= len - qlimit + 1; j++){
 //			cout << sb << endl;
-			insert(qroot, sb, i);
+			insert(qroot, tempt, i);
+			tempt++;
 		}
 	}
-//	cout << "Build QGram Succeed" << endl;
+	//cout << "Build QGram Succeed" << endl;
 }
 
 int SimSearcher::createIndex(const char *filename, unsigned q)
@@ -104,10 +105,9 @@ int SimSearcher::createIndex(const char *filename, unsigned q)
 	if (q == 0) qlimit = 1;
 	else qlimit = q;
 	datasz = 0;
-	qgramsz = 0;
 	querytime = 0;
-	maxlength = 0;
 
+	int len;
 	ifstream fp;
 	p = false;
 	char tp[300011];
@@ -115,10 +115,11 @@ int SimSearcher::createIndex(const char *filename, unsigned q)
 	fp.open(filename);
 	
 	while (getline(fp, temp)) {
-		qgramsz += (temp.length() - qlimit + 1);
-		datastrings[datasz] = temp;		
+		len = temp.length();
+		datastrings[datasz] = new char[len + 1];
+		for (int i = 0; i < len; i++)datastrings[datasz][i] = temp[i];
+		datastrings[datasz][len] = 0;
 		datasz++;
-		if (temp.length() > maxlength) maxlength = temp.length();
 	}
 	fp.close();
 
@@ -155,19 +156,20 @@ int SimSearcher::searchJaccard(const char *query, double threshold, vector<pair<
 int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<unsigned, unsigned> > &result)
 {
 	result.clear();
-	string tq,tb;
+
 	int len,qthresh,listdec;
+	char* tempt;
 
 	querytime++;
-	tq = query;
-	len = tq.length();
+	len = strlen(query);
 
 	qsize = 0;
 	shortsz = 0;
 
+	tempt = (char*)query;
 	for (int i = 1; i <= len - qlimit + 1; i++) {
-		tb = tq.substr(i-1, qlimit);
-		search(qroot, tb);
+		search(qroot, tempt);
+		tempt++;
 	}
 	
 	qthresh = qsize - qlimit + 1 - threshold * qlimit;
@@ -215,7 +217,7 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 	sort(filtans + 1, filtans + 1 + filtsz);
 	int k;
 	for (int i = 1; i <= filtsz; i++){
-		k = CalCulateED(datastrings[filtans[i]], tq);
+		k = CalCulateED(datastrings[filtans[i]], (char*)query);
 		if (k <= threshold) result.push_back(make_pair(filtans[i], k));
 	}
 /*

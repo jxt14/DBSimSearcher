@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 	searcher.searchJaccard("query", jaccardThreshold, resultJaccard);
 	searcher.searchED("query", edThreshold, resultED);
 */
-	searcher.createIndex("sample.txt", 2);
+	searcher.createIndex("sp.txt", 2);
 	
 	string query;
 	cin >> query;
