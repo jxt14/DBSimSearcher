@@ -41,6 +41,7 @@ public:
 	unsigned qlimit;
 	int f[2][311];
 	trie* qroot;
+	trie* jacroot;
 	SimSearcher();
 	~SimSearcher();
 	

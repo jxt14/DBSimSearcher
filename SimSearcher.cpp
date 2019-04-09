@@ -49,14 +49,13 @@ void SimSearcher::search(trie* rt, char* s)
 
 int SimSearcher::CalCulateED(char* s1, const char* s2, int threshold, int len1)
 {
-	int l1,l2,lmax;
+	int l1,l2;
 //	clock_t c1,c2;
 //	c1 = clock();
 	dptime++;
 	l1 = len1;
 	l2 = lquery;
 	if (abs(l1-l2) > threshold) return threshold + 1;
-	lmax = max(l1,l2);
 	int limmin,limmax,limmxl;
 	for (int i = 0; i <= l2; i++)f[0][i] = i;
 	for (int i = 1; i <= l1; i++){
@@ -181,7 +180,7 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 		tempt++;
 	}
 	
-	qthresh = qsize - qlimit + 1 - threshold * qlimit;
+	qthresh = qsize - threshold * qlimit;
 	if (qthresh - 1 < 0) listdec = 0;
 	else listdec = qthresh - 1;
 	listdec = qsize - listdec;
