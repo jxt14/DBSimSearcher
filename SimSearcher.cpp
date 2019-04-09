@@ -47,37 +47,37 @@ void SimSearcher::search(trie* rt, char* s)
 	rt->sl = querytime;
 }
 
-int SimSearcher::CalCulateED(char* s1, const char* s2, int threshold)
+int SimSearcher::CalCulateED(char* s1, const char* s2, int threshold, int len1)
 {
 	int l1,l2,lmax;
-	l1 = strlen(s1);
-	l2 = strlen(s2);
+//	clock_t c1,c2;
+//	c1 = clock();
+	dptime++;
+	l1 = len1;
+	l2 = lquery;
+	if (abs(l1-l2) > threshold) return threshold + 1;
 	lmax = max(l1,l2);
-	for (int i = 0; i <= l1; i++)
-		for (int j = 0; j <= l2; j++)f[i][j] = -1;
-	for (int i = 0; i <= lmax; i++){
-		if (i <= l1)f[i][0] = i;
-		if (i <= l2)f[0][i] = i;
-	}
-	int tempmin,limmin,limmax,colmin;
+	int limmin,limmax,limmxl;
+	for (int i = 0; i <= l2; i++)f[0][i] = i;
 	for (int i = 1; i <= l1; i++){
-		limmin = max(1, i - threshold);
-		limmax = min(l2, i + threshold);
+		f[i&1][0] = i;
+		limmin = 1;
+		if (i - threshold > 1) limmin = i - threshold;
+		limmax = l2;
+		if (i + threshold < l2) limmax = i + threshold;
+		limmxl = l2;
+		if (i - 1 + threshold < l2) limmxl = i - 1 + threshold;
 		for (int j = limmin; j <= limmax; j++){
-			tempmin = lmax + threshold + 1;
-			if (f[i-1][j] != -1) tempmin = f[i-1][j] + 1;
-			if (f[i][j-1] != -1 && f[i][j-1] + 1 < tempmin) tempmin = f[i][j-1] + 1;
-			if (f[i-1][j-1] != -1){
-				if (s1[i-1] == s2[j-1] && f[i-1][j-1] < tempmin) tempmin = f[i-1][j-1];
-				if (s1[i-1] != s2[j-1] && f[i-1][j-1] + 1 < tempmin) tempmin = f[i-1][j-1] + 1;
-			}
-			if (tempmin != -1){
-				if (f[i][j] == -1 || tempmin < f[i][j])f[i][j] = tempmin;
-			}
+			f[i&1][j] = threshold + 1;
+			if((j-1 >= limmin || j-1 == 0) && f[i&1][j-1] + 1 < f[i&1][j])f[i&1][j] = f[i&1][j-1] + 1;
+			if (j <= limmxl && f[(i&1)^1][j] + 1 < f[i&1][j])f[i&1][j] = f[(i&1)^1][j] + 1;
+			if(f[(i&1)^1][j-1] + (s1[i-1] != s2[j-1]) < f[i&1][j])f[i&1][j] = f[(i&1)^1][j-1] + (s1[i-1] != s2[j-1]);
 		}
 	}
-	if (f[l1][l2] == -1) return threshold+1;
-	return f[l1][l2];
+//	c2 = clock();
+//	double thstime = (double)(c2-c1)/(double)CLOCKS_PER_SEC;
+//	timedp += thstime;
+	return f[l1 & 1][l2];
 
 }
 
@@ -91,6 +91,7 @@ void SimSearcher::BuildQgram()
 	for (int i = 0; i < datasz; i++){
 		tempt = datastrings[i];
 		len = strlen(datastrings[i]);
+		lendata[i] = len;
 		//cout << len << endl;
 	//	cout << st << endl;
 		for (int j = 1; j <= len - qlimit + 1; j++){
@@ -110,7 +111,9 @@ int SimSearcher::createIndex(const char *filename, unsigned q)
 	else qlimit = q;
 	datasz = 0;
 	querytime = 0;
-
+	dptime = 0;
+//	timedp = 0;
+//	timequery = 0;
 	int len;
 	ifstream fp;
 	p = false;
@@ -159,14 +162,15 @@ int SimSearcher::searchJaccard(const char *query, double threshold, vector<pair<
 
 int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<unsigned, unsigned> > &result)
 {
-	//clock_t c1,c2;
-	//c1 = clock();
+//	clock_t c1,c2;
+//	c1 = clock();
 	result.clear();
 
 	int len,qthresh,listdec;
 	char* tempt;
-	querytime++;
+	querytime++;	
 	len = strlen(query);
+	lquery = len;
 
 	qsize = 0;
 	shortsz = 0;
@@ -204,7 +208,7 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 		while (shortlist[next] == t && next <= shortsz)next++;
 		soc = next - bz;
 		if (soc >= qthresh) {
-			k = CalCulateED(datastrings[t], query, (int)threshold);
+			k = CalCulateED(datastrings[t], query, threshold, lendata[t]);
 			if (k <= threshold) result.push_back(make_pair(t, k));
 		}
 		else{
@@ -214,7 +218,7 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 				if (soc + qsize - j + 1 < qthresh) break;
 			}
 			if (soc >= qthresh) {
-				k = CalCulateED(datastrings[t], query, (int)threshold);
+				k = CalCulateED(datastrings[t], query, threshold, lendata[t]);
 				if (k <= threshold) result.push_back(make_pair(t, k));
 			}
 		}
@@ -235,10 +239,12 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 	for (int i = 0; i < result.size(); i++){
 		printf("%d %d\n", result[i].first, result[i].second);
 	}*/
-	/*
-	c2 = clock();
-	timequery = (double)(c2-c1)/(double)CLOCKS_PER_SEC;
-	printf("time query %.4lf\n", timequery);*/
+	
+//	c2 = clock();
+//	timequery += (double)(c2-c1)/(double)CLOCKS_PER_SEC;
+//	printf("time query %.4lf\n", timequery);
+//	printf("time dp %.4lf\n", timedp);
+
 	return SUCCESS;
 }
 

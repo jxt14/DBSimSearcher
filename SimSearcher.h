@@ -6,7 +6,6 @@
 #include <fstream>
 #include <cstdio>
 #include <cstdlib>
-#include <map>
 #include <cstring>
 #include <string>
 #include <algorithm>
@@ -38,13 +37,14 @@ class SimSearcher
 public:
 	int datasz,qgramsz;
 	char* datastrings[200011];
+	int lendata[200011],lquery;
 	unsigned qlimit;
-	int f[311][311];
+	int f[2][311];
 	trie* qroot;
 	SimSearcher();
 	~SimSearcher();
 	
-	int querytime,qthresh;
+	int querytime,qthresh,dptime;
 
 	pii qlists[200011];
 	int shortlist[200011];
@@ -55,7 +55,7 @@ public:
 
 	bool check(trie*, int);
 	void BuildQgram();
-	int CalCulateED(char*, const char*, int);
+	int CalCulateED(char*, const char*, int, int);
 	void insert(trie*, char*, int);
 	void search(trie*, char*);
 	int createIndex(const char *filename, unsigned q);

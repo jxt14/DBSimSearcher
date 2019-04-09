@@ -27,14 +27,16 @@ int main()
         }
         cout << s << endl;
     }
-    ofstream fp;
+    ofstream fp;/*
     fp.open("readin.txt");
-    for (int i = 1; i <= 256; i++){
-        k = rand()%26;
-        c = 'a'+k;
-        if (i == 1) s = c;
-        else s = s + c;
+    for(int i = 1; i <= lim; i++){
+        for (int j = 1; j <= 256; j++){
+            k = rand()%6;
+            c = 'a' + k;
+            if (j == 1) s = c;
+            else s = s + c; 
+        }
+        fp << s << endl;
     }
-    fp << s << endl;
-    fp.close();
+    fp.close();*/
 }
