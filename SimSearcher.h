@@ -37,7 +37,7 @@ class SimSearcher
 {
 public:
 	int datasz,qgramsz;
-	char* datastrings[80011];
+	char* datastrings[200011];
 	unsigned qlimit;
 	int f[311][311];
 	trie* qroot;
@@ -46,14 +46,16 @@ public:
 	
 	int querytime,qthresh;
 
-	pii qlists[80011];
-	int shortlist[80011];
+	pii qlists[200011];
+	int shortlist[200011];
 	int filtsz,shortsz,qsize;//the qgram size of the query string
-	int filtans[80011];
+	int filtans[200011];
+
+	double timebuild,timequery,timedp;
 
 	bool check(trie*, int);
 	void BuildQgram();
-	int CalCulateED(char*, char*);
+	int CalCulateED(char*, const char*, int);
 	void insert(trie*, char*, int);
 	void search(trie*, char*);
 	int createIndex(const char *filename, unsigned q);

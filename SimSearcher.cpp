@@ -47,21 +47,24 @@ void SimSearcher::search(trie* rt, char* s)
 	rt->sl = querytime;
 }
 
-int SimSearcher::CalCulateED(char* s1, char* s2)
+int SimSearcher::CalCulateED(char* s1, const char* s2, int threshold)
 {
-	int l1,l2;
+	int l1,l2,lmax;
 	l1 = strlen(s1);
 	l2 = strlen(s2);
+	lmax = max(l1,l2);
 	for (int i = 0; i <= l1; i++)
 		for (int j = 0; j <= l2; j++)f[i][j] = -1;
-	for (int i = 0; i <= max(l1,l2); i++){
+	for (int i = 0; i <= lmax; i++){
 		if (i <= l1)f[i][0] = i;
 		if (i <= l2)f[0][i] = i;
 	}
-	int tempmin;
-	for (int i = 1; i <= l1; i++)
-		for (int j = 1; j <= l2; j++){
-			tempmin = -1;
+	int tempmin,limmin,limmax,colmin;
+	for (int i = 1; i <= l1; i++){
+		limmin = max(1, i - threshold);
+		limmax = min(l2, i + threshold);
+		for (int j = limmin; j <= limmax; j++){
+			tempmin = lmax + threshold + 1;
 			if (f[i-1][j] != -1) tempmin = f[i-1][j] + 1;
 			if (f[i][j-1] != -1 && f[i][j-1] + 1 < tempmin) tempmin = f[i][j-1] + 1;
 			if (f[i-1][j-1] != -1){
@@ -72,6 +75,8 @@ int SimSearcher::CalCulateED(char* s1, char* s2)
 				if (f[i][j] == -1 || tempmin < f[i][j])f[i][j] = tempmin;
 			}
 		}
+	}
+	if (f[l1][l2] == -1) return threshold+1;
 	return f[l1][l2];
 
 }
@@ -109,7 +114,6 @@ int SimSearcher::createIndex(const char *filename, unsigned q)
 	int len;
 	ifstream fp;
 	p = false;
-	char tp[300011];
 
 	fp.open(filename);
 	
@@ -129,7 +133,6 @@ int SimSearcher::createIndex(const char *filename, unsigned q)
 		cout << datastrings[i] << endl;
 	}
 */
-//	cout << "input succeed" << endl;
 	BuildQgram();
 	return 0;
 }
@@ -156,11 +159,12 @@ int SimSearcher::searchJaccard(const char *query, double threshold, vector<pair<
 
 int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<unsigned, unsigned> > &result)
 {
+	//clock_t c1,c2;
+	//c1 = clock();
 	result.clear();
 
 	int len,qthresh,listdec;
 	char* tempt;
-
 	querytime++;
 	len = strlen(query);
 
@@ -189,38 +193,35 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 
 	sort(shortlist + 1, shortlist + 1 + shortsz);
 	int bz,next,soc;
+	int k,t;
 
 	filtsz = 0;
 
 	bz = 1;
 	while (bz <= shortsz){
 		next = bz;
-		while (shortlist[next] == shortlist[bz] && next <= shortsz)next++;
+		t = shortlist[bz];
+		while (shortlist[next] == t && next <= shortsz)next++;
 		soc = next - bz;
 		if (soc >= qthresh) {
-			filtsz++;
-			filtans[filtsz] = shortlist[bz];
+			k = CalCulateED(datastrings[t], query, (int)threshold);
+			if (k <= threshold) result.push_back(make_pair(t, k));
 		}
 		else{
 			for (int j = listdec + 1; j <= qsize; j++) {
-				if (check(qlists[j].second, shortlist[bz]) == true) soc++;
+				if (check(qlists[j].second, t) == true) soc++;
 				if (soc >= qthresh) break;
 				if (soc + qsize - j + 1 < qthresh) break;
 			}
 			if (soc >= qthresh) {
-				filtsz++;
-				filtans[filtsz] = shortlist[bz];
+				k = CalCulateED(datastrings[t], query, (int)threshold);
+				if (k <= threshold) result.push_back(make_pair(t, k));
 			}
 		}
 		bz = next;
 	}
 
-	sort(filtans + 1, filtans + 1 + filtsz);
-	int k;
-	for (int i = 1; i <= filtsz; i++){
-		k = CalCulateED(datastrings[filtans[i]], (char*)query);
-		if (k <= threshold) result.push_back(make_pair(filtans[i], k));
-	}
+	//sort(filtans + 1, filtans + 1 + filtsz);
 /*
 	int k;
 	for (int i = 0; i < datasz; i++){
@@ -234,6 +235,10 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 	for (int i = 0; i < result.size(); i++){
 		printf("%d %d\n", result[i].first, result[i].second);
 	}*/
+	/*
+	c2 = clock();
+	timequery = (double)(c2-c1)/(double)CLOCKS_PER_SEC;
+	printf("time query %.4lf\n", timequery);*/
 	return SUCCESS;
 }
 
