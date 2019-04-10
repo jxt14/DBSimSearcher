@@ -9,6 +9,9 @@
 #include <cstring>
 #include <string>
 #include <algorithm>
+#include <set>
+#include <cmath>
+#include <map>
 
 const int SUCCESS = 0;
 const int FAILURE = 1;
@@ -16,7 +19,7 @@ const int FAILURE = 1;
 
 struct trie
 {
-	int num,qsize,ql,sl;
+	int qsize,ql,sl;
 	trie* node[129];
 	int* qgram;
 	trie()
@@ -24,7 +27,6 @@ struct trie
 		qsize = 0;
 		ql = -1;
 		sl = -1;
-		num = -1;
 		for(int i = 0; i <= 128; i++)node[i] = NULL;
 		qgram = NULL;
 	}
@@ -42,6 +44,9 @@ public:
 	int f[2][311];
 	trie* qroot;
 	trie* jacroot;
+	std::map<int, std::set<std::string>> jacset;
+	std::set<std::string> jacquery;
+	int minjac;
 	SimSearcher();
 	~SimSearcher();
 	
@@ -55,10 +60,12 @@ public:
 	double timebuild,timequery,timedp;
 
 	bool check(trie*, int);
+	void BuildJaccard();
 	void BuildQgram();
+	double CalCulateJaccard(int);
 	int CalCulateED(char*, const char*, int, int);
-	void insert(trie*, char*, int);
-	void search(trie*, char*);
+	void insert(trie*, char*, int, int);
+	void search(trie*, char*, int);
 	int createIndex(const char *filename, unsigned q);
 	int searchJaccard(const char *query, double threshold, std::vector<std::pair<unsigned, double> > &result);
 	int searchED(const char *query, unsigned threshold, std::vector<std::pair<unsigned, unsigned> > &result);

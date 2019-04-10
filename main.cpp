@@ -23,7 +23,12 @@ int main(int argc, char **argv)
 	
 	searcher.searchED(query.c_str(), 6, resultED);
 	cout << endl;
+	searcher.searchJaccard(query.c_str(), 0.4, resultJaccard);
+	cout << endl;
 	searcher.searchED(query.c_str(), 7, resultED);
+	cout << endl;
+	searcher.searchJaccard(query.c_str(), 0.2, resultJaccard);
+
 
 	return 0;
 }

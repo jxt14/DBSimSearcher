@@ -3,19 +3,20 @@
 #include <iostream>
 #include <cstring>
 #include <fstream>
+#include <set>
+#include <string>
 
 using namespace std;
 
 int main()
 {
-    char* s;
-    s = new char[301];
-    string ss;
-    ifstream fp;
-    fp.open("sample.txt");
-    while(fp.getline(s, 300)){
-        ss = s;
-        cout << strlen(s) << endl;
-    }
-    fp.close();
+    string s1;
+    char *s;
+    s = new char[10];
+    s[0] = 'a';
+    s[1] = 'b';
+    s[2] = 0;
+    s[3] = 'c';
+    s1 = s;
+    cout << s1 << endl;
 }

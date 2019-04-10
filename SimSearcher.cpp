@@ -10,15 +10,29 @@ SimSearcher::~SimSearcher()
 {
 }
 
-void SimSearcher::insert(trie* rt, char* s,int id)
+inline unsigned hashh(char* s)
+{
+	unsigned h;
+	h = 0;
+	int l = strlen(s);
+	for (int i = 0; i < l; i++) {
+		if (s[i] == ' ') break;
+		h = h * 131 + (int)s[i];
+	}
+	return h;
+}
+
+void SimSearcher::insert(trie* rt, char* s, int id, int kd)
 {
 //	cout << "insert " << s << " for string " << id << endl;
 
 //	cout << s << endl;
-	for (int i = 0; i < qlimit; i++){
+	int tlim,i;
+	if (kd == 0) tlim = qlimit;
+	else tlim = strlen(s);
+	for (i = 0; i < tlim; i++){
 		if (rt -> node[(int)s[i]] == NULL){
 			rt->node[(int)s[i]] = new trie();
-			rt->node[(int)s[i]]->num = ++qgramsz;
 		}
 		rt = rt -> node[(int)s[i]];
 	}
@@ -34,9 +48,12 @@ void SimSearcher::insert(trie* rt, char* s,int id)
 	}
 }
 
-void SimSearcher::search(trie* rt, char* s)
+void SimSearcher::search(trie* rt, char* s, int kd)
 {
-	for (int i = 0; i < qlimit; i++){
+	int tlim;
+	if (kd == 0) tlim = qlimit;
+	else tlim = strlen(s);
+	for (int i = 0; i < tlim; i++){
 		if (rt->node[(int)s[i]] == NULL) return;
 		rt = rt -> node[(int)s[i]];
 	}
@@ -45,6 +62,15 @@ void SimSearcher::search(trie* rt, char* s)
 	qsize++;
 	qlists[qsize] = make_pair(rt->qsize, rt);
 	rt->sl = querytime;
+}
+
+double SimSearcher::CalCulateJaccard(int id)
+{
+	int tt = 0;
+	for (auto l: jacquery) {
+		if (jacset[id].find(l) != jacset[id].end())tt++;
+	}
+	return (double)(tt)/(double)(jacset[id].size() + jacquery.size() - tt);
 }
 
 int SimSearcher::CalCulateED(char* s1, const char* s2, int threshold, int len1)
@@ -80,13 +106,49 @@ int SimSearcher::CalCulateED(char* s1, const char* s2, int threshold, int len1)
 
 }
 
+void SimSearcher::BuildJaccard()
+{
+	minjac = 2147483647;
+	char* tempt;
+	string tsr;
+	jacroot = new trie();
+	int inx,ts;
+	tempt = new char[311];
+	for (int i = 0; i < datasz; i++){
+		jacset[i].clear();
+		inx = 0;
+		for (int j = 0; j < lendata[i]; j++){
+			tempt[j - inx] = datastrings[i][j];
+			if (datastrings[i][j] == ' '){
+				if (inx < j){
+					tempt[j - inx] = 0;
+					insert(jacroot, tempt, i, 1);
+					tsr = tempt;
+					jacset[i].insert(tsr);
+				}
+				inx = j + 1;
+			}
+		}
+		if (inx < lendata[i]) {
+			for (int j = inx; j < lendata[i]; j++){
+				tempt[j - inx] = datastrings[i][j];
+			}
+			tempt[lendata[i] - inx] = 0;
+			insert(jacroot, tempt, i, 1);
+			tsr = tempt;
+			jacset[i].insert(tsr);
+		}
+		if (jacset[i].size() < minjac) minjac = jacset[i].size();
+	}
+//	cout << "build jaccard finished" << endl;
+}
+
 void SimSearcher::BuildQgram()
 {
 	char* tempt;
 	int len;
 	qgramsz = 0;
 	qroot = new trie();
-	qroot -> num = 0;
 	for (int i = 0; i < datasz; i++){
 		tempt = datastrings[i];
 		len = strlen(datastrings[i]);
@@ -95,11 +157,10 @@ void SimSearcher::BuildQgram()
 	//	cout << st << endl;
 		for (int j = 1; j <= len - qlimit + 1; j++){
 //			cout << sb << endl;
-			insert(qroot, tempt, i);
+			insert(qroot, tempt, i, 0);
 			tempt++;
 		}
 	}
-	//cout << "Build QGram Succeed" << endl;
 }
 
 int SimSearcher::createIndex(const char *filename, unsigned q)
@@ -136,6 +197,7 @@ int SimSearcher::createIndex(const char *filename, unsigned q)
 	}
 */
 	BuildQgram();
+	BuildJaccard();
 	return 0;
 }
 
@@ -156,6 +218,109 @@ bool SimSearcher::check(trie* rt, int bz)
 int SimSearcher::searchJaccard(const char *query, double threshold, vector<pair<unsigned, double> > &result)
 {
 	result.clear();
+
+	char* tempt;
+	int inx,len,listdec;
+
+	querytime++;
+	qsize = 0;
+	shortsz = 0;
+	len = strlen(query);
+	lquery = len;
+	tempt = new char[len+1];
+	inx = 0;
+	
+	jacquery.clear();
+
+	int k;
+	bool pb;
+	string ts;
+
+	inx = 0;
+	for (int i = 0; i < len; i++){
+		tempt[i - inx] = query[i];
+		if (query[i] == ' '){
+			if (inx < i) {
+				tempt[i - inx] = 0;
+				search(jacroot, tempt, 1);
+				ts = tempt;
+				jacquery.insert(ts);
+			}
+			inx = i + 1;
+		}
+	}	
+
+	if (inx < len) {
+		for (int i = inx; i < len; i++) {
+			tempt[i - inx] = query[i];
+		}
+		tempt[len - inx] = 0;
+		search(jacroot, tempt, 1);
+		ts = tempt;
+		jacquery.insert(ts);
+	}
+
+	double fv;
+	for (int i = 0; i < datasz; i++) {
+		fv = CalCulateJaccard(i);
+		if (fv > threshold) result.push_back(make_pair(i, fv));
+	}
+/*
+	double thresh1,thresh2;
+	thresh1 = jacquery.size() * threshold;
+	thresh2 = (minjac + jacquery.size()) * threshold / (1.0 + threshold);
+	if (ceil(thresh1) > ceil(thresh2)) qthresh = ceil(thresh1);
+	else qthresh = ceil(thresh2);
+
+	if (qthresh - 1 < 0) listdec = 0;
+	else listdec = qthresh - 1;
+	listdec = qsize - listdec;
+	listdec = qsize;//for debug
+	if (listdec < 0) return SUCCESS;
+	sort(qlists + 1, qlists + 1 + qsize);
+	
+	for (int i = 1; i <= listdec; i++){
+		for (int j = 1; j <= qlists[i].second->qsize; j++){
+			shortsz++;
+			shortlist[shortsz] = qlists[i].second->qgram[j];
+		}
+	}
+
+	sort(shortlist + 1, shortlist + 1 + shortsz);
+	int bz,next,soc;
+	int t;
+	double fv;
+
+	filtsz = 0;
+
+	bz = 1;
+	while (bz <= shortsz){
+		next = bz;
+		t = shortlist[bz];
+		while (shortlist[next] == t && next <= shortsz)next++;
+		soc = next - bz;
+		if (soc >= qthresh) {
+			fv = CalCulateJaccard(t);
+			if (fv >= threshold) result.push_back(make_pair(t, fv));
+		}
+		else{
+			for (int j = listdec + 1; j <= qsize; j++) {
+				if (soc + qsize - j + 1 < qthresh) break;
+				if (check(qlists[j].second, t) == true) soc++;
+				if (soc >= qthresh) break;
+			}
+			if (soc >= qthresh) {
+				fv = CalCulateJaccard(t);
+				if (fv >= threshold) result.push_back(make_pair(t, fv));
+			}
+		}
+		bz = next;
+	}
+/*
+	for (int i = 0; i < result.size(); i++){
+		printf("%d %.4lf\n", result[i].first, result[i].second);
+	}*/
+
 	return SUCCESS;
 }
 
@@ -175,8 +340,9 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 	shortsz = 0;
 
 	tempt = (char*)query;
+	
 	for (int i = 1; i <= len - qlimit + 1; i++) {
-		search(qroot, tempt);
+		search(qroot, tempt, 0);
 		tempt++;
 	}
 	
@@ -224,16 +390,7 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 		bz = next;
 	}
 
-	//sort(filtans + 1, filtans + 1 + filtsz);
-/*
-	int k;
-	for (int i = 0; i < datasz; i++){
-		k = CalCulateED(datastrings[i], tq);
-		if (k <= threshold) {
-			result.push_back(make_pair(i, k));
-		}
-	}
-*/
+
 /*
 	for (int i = 0; i < result.size(); i++){
 		printf("%d %d\n", result[i].first, result[i].second);
