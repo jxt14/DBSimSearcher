@@ -21,14 +21,15 @@ struct trie
 {
 	int qsize,ql,sl;
 	trie* node[129];
-	int* qgram;
+	std::vector<int> qgram;
 	trie()
 	{
 		qsize = 0;
 		ql = -1;
 		sl = -1;
 		for(int i = 0; i <= 128; i++)node[i] = NULL;
-		qgram = NULL;
+		qgram.clear();
+		qgram.push_back(0);
 	}
 };
 
@@ -38,14 +39,12 @@ class SimSearcher
 {
 public:
 	int datasz,qgramsz;
-	char* datastrings[200011];
+	std::vector<std::string> datastrings;
 	int lendata[200011],lquery;
 	unsigned qlimit;
-	int f[2][311];
 	trie* qroot;
 	trie* jacroot;
-	std::map<int, std::set<std::string>> jacset;
-	std::set<std::string> jacquery;
+	std::map<int, std::set<unsigned>> jacset;
 	int minjac;
 	SimSearcher();
 	~SimSearcher();
@@ -53,19 +52,18 @@ public:
 	int querytime,qthresh,dptime;
 
 	pii qlists[200011];
-	int shortlist[200011];
-	int filtsz,shortsz,qsize;//the qgram size of the query string
-	int filtans[200011];
+	int querycheck[200011],occurtime[200011];
+	int qsize;//the qgram size of the query string
 
 	double timebuild,timequery,timedp;
 
 	bool check(trie*, int);
 	void BuildJaccard();
 	void BuildQgram();
-	double CalCulateJaccard(int);
-	int CalCulateED(char*, const char*, int, int);
-	void insert(trie*, char*, int, int);
-	void search(trie*, char*, int);
+	double CalCulateJaccard(std::set<unsigned>&, std::set<unsigned>&);
+	int CalCulateED(const char*, int, const char*, int, int);
+	void insert(trie*, const char*, int, int);
+	void search(trie*, const char*, int);
 	int createIndex(const char *filename, unsigned q);
 	int searchJaccard(const char *query, double threshold, std::vector<std::pair<unsigned, double> > &result);
 	int searchED(const char *query, unsigned threshold, std::vector<std::pair<unsigned, unsigned> > &result);
