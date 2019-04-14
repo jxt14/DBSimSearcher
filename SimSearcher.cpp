@@ -116,7 +116,7 @@ void SimSearcher::BuildJaccard()
 	jacroot = new trie();
 	int inx,ts;
 	for (int i = 0; i < datasz; i++){
-		jacset[i].clear();
+		//jacset[i].clear();
 		inx = 0;
 		for (int j = 0; j < lendata[i]; j++){
 			if (datastrings[i][j] == ' '){
@@ -355,14 +355,17 @@ int SimSearcher::searchED(const char *query, unsigned threshold, vector<pair<uns
 
 	sort(shortlist.begin(), shortlist.end());
 	int soc;
+	int slim = shortlist.size();
 
-	for (int i = 0; i < shortlist.size(); i++){
+	for (int i = 0; i < slim; i++){
 		t = shortlist[i];
 		soc = occurtime[t];
+		if (my_abs(len - lendata[t]) > threshold) continue;
+		if (soc < lendata[t] - len) continue;
 		for (int j = listdec + 1; j <= qsize; j++) {
 			if (soc >= qthresh) break;
 			if (soc + qsize - j + 1 < qthresh) break;
-			if (check(qlists[j].second, t) == true) soc++;
+			if (binary_search(qlists[j].second->qgram.begin(), qlists[j].second->qgram.end(), t) == true) soc++;
 		}
 		if (soc >= qthresh) {
 			k = CalCulateED(datastrings[t].c_str(), lendata[t], query, len, threshold);
