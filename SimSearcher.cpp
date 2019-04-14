@@ -96,12 +96,14 @@ int SimSearcher::CalCulateED(const char* s1, int m, const char* s2, int n, int t
     {
         int limmin = my_max(i - threshold, 1);
         int limmax = my_min(i + threshold, n);
-        if (limmin > limmax)break;
         for (int j = limmin; j <= limmax; j++)
         {
-            int d1 = my_abs(i - 1 - j) > threshold ? threshold + 1 : f[i - 1][j];
-            int d2 = my_abs(i - j + 1) > threshold ? threshold + 1 : f[i][j - 1];
-            f[i][j] = min_3(d1 + 1, d2 + 1, f[i - 1][j - 1] + (s1[i-1] != s2[j-1]));
+			int f1,f2;
+			if (my_abs(i - 1 - j) > threshold) f1 = threshold + 1;
+			else f1 = f[i-1][j];
+			if (my_abs(i - j + 1) > threshold) f2 = threshold + 1;
+			else f2 = f[i][j-1];
+            f[i][j] = min_3(f1 + 1, f2 + 1, f[i-1][j-1] + (s1[i-1] != s2[j-1]));
         }
     }
     return f[m][n];
@@ -286,7 +288,7 @@ int SimSearcher::searchJaccard(const char *query, double threshold, vector<pair<
 		for (int j = listdec + 1; j <= qsize; j++) {
 			if (soc + qsize - j + 1 < qthresh) break;
 			if (soc >= qthresh) break;
-			if (check(qlists[j].second, t) == true) soc++;
+			if (binary_search(qlists[j].second->qgram.begin(), qlists[j].second->qgram.end(), t) == true) soc++;
 		}
 		if (soc >= qthresh) {
 			fv = CalCulateJaccard(jacset[t], jacquery);
